@@ -3,39 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hogler Translator</title>
+<title>Hogler Learning</title>
 <style>
-/* Corpo e fontes */
-body { font-family:'Courier New', monospace; margin:0; padding:0; background:#0e0e0e; color:#f0f0f0; }
-header { background:#222; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
-header h1 { margin:0; font-size:1.8em; color:#ffcc00; }
-nav a { color:#ffcc00; text-decoration:none; margin-left:15px; font-weight:bold; cursor:pointer; transition:0.3s;}
-nav a.active, nav a:hover { color:#fff; }
-.container { padding:20px; display:none; opacity:0; transition:opacity 0.5s ease; }
-.container.active { display:block; opacity:1; }
-/* Botões */
-button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; transition:0.3s; }
-#translateBtn { background:#ffcc00; color:#000; }
-#listenBtn { background:#33cc33; color:#000; }
-#typeSelect { padding:8px; margin-bottom:10px; border-radius:6px; border:none; background:#444; color:#f0f0f0; font-weight:bold; }
-/* Tabelas */
-table { width:100%; border-collapse:collapse; margin-top:20px; }
-th, td { padding:10px; border:1px solid #555; text-align:left; }
-th { background:#333; color:#ffcc00; }
-td { background:#222; }
+body {
+  font-family: 'Courier New', monospace;
+  background: #0e0e0e;
+  color: #f0f0f0;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+header {
+  background: #222;
+  padding: 15px 20px;
+  color: #ffcc00;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+}
+header h1 { margin: 0; font-size: 2em; }
+nav a {
+  color: #ffcc00;
+  text-decoration: none;
+  margin-left: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+nav a.active, nav a:hover { color: #fff; }
+.container {
+  padding: 20px;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.container.active {
+  display: block;
+  opacity: 1;
+}
+button {
+  margin: 10px 5px 10px 0;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #ffcc00;
+}
+#translateBtn { background: #ffcc00; color: #000; }
+#listenBtn { background: #33cc33; color: #000; }
+#hudBtn { background: #00ccff; color: #000; }
+textarea {
+  width: 100%;
+  height: 100px;
+  background: #1a1a1a;
+  color: #f0f0f0;
+  border: 2px solid #444;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 16px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+th, td {
+  padding: 10px;
+  border: 1px solid #555;
+  text-align: left;
+}
+th { background: #333; color: #ffcc00; }
+td { background: #222; }
 /* HUD */
-#dictionaryHUD { position:fixed; top:10%; left:50%; transform:translateX(-50%); width:85%; max-width:800px; background:#111; border:2px solid #ffcc00; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8); animation:fadeIn 0.5s ease; }
-#closeHUD { background:#ff3333; float:right; padding:5px 10px; border:none; border-radius:6px; cursor:pointer; }
-#closeHUD:hover { background:#cc0000; }
+#dictionaryHUD {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 85%;
+  max-width: 800px;
+  background: #111;
+  border: 2px solid #ffcc00;
+  border-radius: 12px;
+  padding: 20px;
+  display: none;
+  z-index: 1000;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.8);
+  animation: fadeIn 0.5s ease;
+}
+#closeHUD {
+  background: #ff3333;
+  float: right;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#closeHUD:hover { background: #cc0000; }
 @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-/* Rodapé */
+/* Texto animado */
+.animatedText {
+  animation: textFade 2s ease forwards;
+}
+@keyframes textFade {
+  from { opacity: 0; transform: translateY(20px);}
+  to { opacity:1; transform: translateY(0);}
+}
 footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border-top:1px solid #444; }
 </style>
 </head>
 <body>
 
 <header>
-<h1>Hogler Translator</h1>
+<h1>Hogler Learning</h1>
 <nav>
 <a class="tablink active" onclick="openTab(event,'Tradutor')">Tradutor</a>
 <a class="tablink" onclick="openTab(event,'Dicionario')">Dicionário</a>
@@ -45,10 +132,10 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 
 <!-- Tradutor -->
 <div id="Tradutor" class="container active">
-<label for="typeSelect">Tipo de Hogler:</label>
+<p class="animatedText">Escolha o tipo de Hogler que deseja aprender:</p>
 <select id="typeSelect">
-<option value="tradicional">Hogler Tradicional (Português)</option>
-<option value="normal">Hogler Normal (Alemão)</option>
+  <option value="tradicional">Hogler Tradicional (Português)</option>
+  <option value="normal">Hogler Normal (Alemão)</option>
 </select>
 <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea><br>
 <button id="translateBtn" onclick="translateHogler()">Traduzir</button>
@@ -67,24 +154,24 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 
 <!-- Dicionário -->
 <div id="Dicionario" class="container">
-<h2>Dicionário Hogler</h2>
-<button id="openHUD" onclick="toggleHUD()">Abrir HUD</button>
+<h2 class="animatedText">Dicionário Hogler</h2>
+<button id="hudBtn" onclick="toggleHUD()">Abrir HUD Detalhado</button>
 <div id="dictionaryHUD">
 <button id="closeHUD" onclick="toggleHUD()">Fechar</button>
-<h2>Dicionário Detalhado</h2>
+<h2>Vocabulário e Regras</h2>
 <ul id="dictList"></ul>
 </div>
 </div>
 
 <!-- Sobre -->
 <div id="Sobre" class="container">
-<h2>Sobre</h2>
+<h2 class="animatedText">Sobre</h2>
 <p><a href="https://dsc.gg/ispasyu" target="_blank">Discord</a></p>
 <p>Made in Portugal</p>
 </div>
 
 <script>
-// Função abas animada
+// Função de abas animada
 function openTab(evt, tabName){
   document.querySelectorAll('.container').forEach(c=>c.classList.remove('active'));
   document.querySelectorAll('.tablink').forEach(l=>l.classList.remove('active'));
@@ -110,39 +197,28 @@ const germanWords = {
 "hallo": {symbols:"ㅎㅏ",pronunciation:"Hallo"},
 "welt": {symbols:"ㅗㅔ",pronunciation:"Welt"}
 };
-
-// Símbolos simples
 const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ä':'ㅁ','Ö':'ㅑ','Ü':'ㅓ','ß':'ㅅ','Ç':'ㄱ'};
 
-// Normalização
+// Normalização e cifragem
 function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
 function caesarShift(char, alphabet){ let upper=char.toUpperCase(); if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; return char; }
 
 // Tradutor
-function wordToHogler(word, type){
+function wordToHogler(word,type){
   let dict=(type==="tradicional")?portugueseWords:germanWords;
   let expr=dict[word.toLowerCase()];
   if(expr) return expr.symbols;
   let alphabet=(type==="tradicional")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
   let shifted=''; for(let c of word) shifted+=caesarShift(c,alphabet);
-  let symbols=''; for(let c of shifted){ symbols+=hoglerSymbols[c.toUpperCase()]||c; }
+  let symbols=''; for(let c of shifted){ symbols+=hoglerSymbols[c.toUpperCase()]||c;}
   return symbols;
 }
-
 function wordPronunciation(text,type){
   let dict=(type==="tradicional")?portugueseWords:germanWords;
-  let words=text.split(/\s+/);
-  let result=[];
-  words.forEach(word=>{
-    let expr=dict[word.toLowerCase()];
-    if(expr) result.push(expr.pronunciation);
-    else { let alphabet=(type==="tradicional")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
-           let shifted=''; for(let c of word) shifted+=caesarShift(c,alphabet);
-           result.push(shifted);}
-  });
+  let words=text.split(/\s+/); let result=[];
+  words.forEach(word=>{ let expr=dict[word.toLowerCase()]; if(expr) result.push(expr.pronunciation); else { let alphabet=(type==="tradicional")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß"; let shifted=''; for(let c of word) shifted+=caesarShift(c,alphabet); result.push(shifted); }});
   return result.join(' ');
 }
-
 function translateHogler(){
   const input=document.getElementById('inputText').value;
   const type=document.getElementById('typeSelect').value;
@@ -156,8 +232,6 @@ function translateHogler(){
     tbody.innerHTML+=row;
   });
 }
-
-// Ouvir
 function listenHogler(){
   const input=document.getElementById('inputText').value;
   const type=document.getElementById('typeSelect').value;
@@ -170,7 +244,8 @@ function listenHogler(){
 function updateDictionary(){
   const dictList=document.getElementById('dictList');
   dictList.innerHTML='';
-  for(const [k,v] of Object.entries({...portugueseWords,...germanWords})){
+  const combined={...portugueseWords,...germanWords};
+  for(const [k,v] of Object.entries(combined)){
     dictList.innerHTML+=`<li><strong>${k}</strong> → Símbolos: ${v.symbols}, Pronúncia: ${v.pronunciation}</li>`;
   }
 }
@@ -178,5 +253,3 @@ updateDictionary();
 </script>
 
 <footer>Made in Portugal</footer>
-</body>
-</html>
