@@ -3,122 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hogler Translator + IA Aberta</title>
+<title>Hogler Translator</title>
 <style>
 body { font-family:'Courier New',monospace; background:#0e0e0e; color:#f0f0f0; margin:0; padding:0; }
-header { background:#222; padding:20px; text-align:center; font-size:2em; color:#ffcc00; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
+header { background:#222; padding:20px; text-align:center; font-size:2em; color:#ffcc00; }
 .container { padding:20px; }
 textarea { width:100%; height:100px; background:#1a1a1a; color:#f0f0f0; border:2px solid #444; border-radius:8px; padding:10px; font-size:16px; font-family:monospace; }
-button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; transition:0.3s; }
-#translateBtn { background-color:#ffcc00; } #translateBtn:hover { background-color:#e6b800; }
-#dictionaryBtn { background-color:#00ccff; } #dictionaryBtn:hover { background-color:#00b3e6; }
-#listenBtn { background-color:#33cc33; } #listenBtn:hover { background-color:#28a428; }
-#aiBtn { background-color:#ff66cc; } #aiBtn:hover { background-color:#e65cb3; }
+button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; }
+#translateBtn { background-color:#ffcc00; }
+#listenBtn { background-color:#33cc33; }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #555; text-align:left; }
 th { background:#333; color:#ffcc00; } td { background:#222; }
-#dictionaryHUD, #aiHUD { position:fixed; top:5%; left:50%; transform:translateX(-50%); width:85%; max-width:900px; background:#111; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8);}
-#dictionaryHUD { border:2px solid #ffcc00;} #aiHUD { border:2px solid #ff66cc;}
-#dictionaryHUD h2, #aiHUD h2 { margin-top:0; }
-#closeHUD, #closeAI { background:#ff3333; float:right;} #closeHUD:hover,#closeAI:hover{background:#cc0000;}
-#dictList li { margin:5px 0; }
-#aiOutput { background:#222; border:1px solid #555; padding:10px; border-radius:8px; margin-top:10px; font-family:monospace; white-space:pre-wrap; }
-#openSourceNote { margin-top:15px; font-size:14px; color:#ffcc00; }
 </style>
 </head>
 <body>
 
-<header>Hogler Translator + IA Aberta</header>
+<header>Hogler Translator</header>
 <div class="container">
 <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea><br>
 <button id="translateBtn" onclick="translateHogler()">Traduzir</button>
 <button id="listenBtn" onclick="listenHogler()">Ouvir</button>
-<button id="dictionaryBtn" onclick="toggleDictionary()">Dicionário</button>
-<button id="aiBtn" onclick="toggleAI()">IA Hogler</button>
 
 <table id="outputTable">
 <thead>
 <tr>
 <th>Palavra</th>
 <th>Hogler (Pronúncia)</th>
-<th>Significado</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
-<div id="openSourceNote">
-Nota: O código da IA é aberto. Qualquer pessoa pode criar seu próprio vocabulário, desde que siga as regras do Hogler.
-</div>
-</div>
-
-<!-- Dicionário -->
-<div id="dictionaryHUD">
-<button id="closeHUD" onclick="toggleDictionary()">Fechar</button>
-<h2>Dicionário Hogler</h2>
-<ul id="dictList"></ul>
-<p>Use este dicionário para entender palavras, criar vocabulário personalizado e aprender Hogler.</p>
-</div>
-
-<!-- IA -->
-<div id="aiHUD">
-<button id="closeAI" onclick="toggleAI()">Fechar</button>
-<h2>IA Hogler (Código Aberto)</h2>
-<p>Escolha uma pergunta pré-definida ou digite algo:</p>
-<select id="aiQuestions" onchange="autoAskAI()">
-<option value="">--Escolha uma pergunta--</option>
-<option value="exemplos">Diga exemplos de palavras em Hogler</option>
-<option value="regras">Explique as regras do Hogler</option>
-<option value="traduza">Traduza uma frase</option>
-<option value="criar_vocabulario">Como criar um novo vocabulário</option>
-</select>
-<textarea id="aiInput" placeholder="Digite seu pedido para a IA..."></textarea><br>
-<button onclick="askAI()">Executar IA</button>
-<div id="aiOutput"></div>
 </div>
 
 <script>
 // Símbolos Hogler
 const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ç':'ㄱ'};
 
-// Palavras originais e vocabulário (qualquer pessoa pode editar/adicionar)
-let specialWords = {
-"oi": {symbols:"ㅇㅔ",pronunciation:"Au",meaning:"Saudação"},
-"olá": {symbols:"ㅇㅔ",pronunciation:"Au",meaning:"Saudação"},
-"nome": {symbols:"ㅁㅣ",pronunciation:"No",meaning:"Indicação de nome"},
-"idade": {symbols:"ㅎㅣ",pronunciation:"Ida",meaning:"Indicação de idade"},
-"país": {symbols:"ㅁㅓ",pronunciation:"Pais",meaning:"Indicação de país"},
-"cidade": {symbols:"ㅅㅓ",pronunciation:"Cida",meaning:"Indicação de cidade"},
-"difícil": {symbols:"ㄴㅏ",pronunciation:"Difícil",meaning:"Palavra um pouco difícil"}
+// Palavras especiais
+const specialWords = {
+"oi": {symbols:"ㅇㅔ",pronunciation:"Au"},
+"olá": {symbols:"ㅇㅔ",pronunciation:"Au"},
+"nome": {symbols:"ㅁㅣ",pronunciation:"No"},
+"idade": {symbols:"ㅎㅣ",pronunciation:"Ida"},
+"país": {symbols:"ㅁㅓ",pronunciation:"Pais"},
+"cidade": {symbols:"ㅅㅓ",pronunciation:"Cida"}
 };
 
-// Funções básicas
+// Normalização
 function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function caesarShift(char){ const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÇ"; let upper=char.toUpperCase(); if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; return char; }
-function findExpression(text){ let normalized=normalizeWord(text).toLowerCase(); for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){ if(normalizeWord(key)===normalized || normalized.includes(normalizeWord(key))) return key;} return null; }
-function wordToHogler(word){ let expr=findExpression(word); if(expr) return specialWords[expr].symbols; let normalized=normalizeWord(word); let shifted=''; for(let c of normalized) shifted+=caesarShift(c); let symbols=''; for(let c of shifted){ let u=c.toUpperCase(); symbols+=hoglerSymbols[u]||c;} if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1]; return symbols; }
-function wordPronunciation(text){ let words = text.split(/\s+/); let result=[]; words.forEach(word => { let expr=findExpression(word); if(expr) result.push(specialWords[expr].pronunciation); else { let normalized=normalizeWord(word); let shifted=''; for(let c of normalized) shifted+=caesarShift(c); result.push(shifted);} }); return result.join(' '); }
-function getMeaning(word){ let expr=findExpression(word); if(expr) return specialWords[expr].meaning; return "Palavra normal"; }
+function findExpression(text){ let normalized=normalizeWord(text).toLowerCase(); for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){ if(normalizeWord(key)===normalized) return key;} return null; }
 
-// Traduzir
-function translateHogler(){ const input=document.getElementById('inputText').value; const tbody=document.querySelector('#outputTable tbody'); tbody.innerHTML=''; const words=input.match(/\S+/g)||[]; words.forEach(word=>{ const symbols=wordToHogler(word); const pron=wordPronunciation(word); const meaning=getMeaning(word); const row=`<tr><td>${word}</td><td>${symbols} (${pron})</td><td>${meaning}</td></tr>`; tbody.innerHTML+=row; }); }
+// Converter palavra para Hogler
+function wordToHogler(word){
+  let expr=findExpression(word);
+  if(expr) return specialWords[expr].symbols;
+  let normalized=normalizeWord(word);
+  let shifted=''; for(let c of normalized) shifted+=caesarShift(c);
+  let symbols=''; for(let c of shifted){ let u=c.toUpperCase(); symbols+=hoglerSymbols[u]||c; }
+  return symbols;
+}
 
-// Ouvir frase toda
-function listenHogler(){ const input=document.getElementById('inputText').value; const utterance=new SpeechSynthesisUtterance(wordPronunciation(input)); utterance.lang='pt-BR'; window.speechSynthesis.speak(utterance); }
+// Pronúncia
+function wordPronunciation(text){
+  let words=text.split(/\s+/);
+  let result=[];
+  words.forEach(word => {
+    let expr=findExpression(word);
+    if(expr) result.push(specialWords[expr].pronunciation);
+    else {
+      let normalized=normalizeWord(word);
+      let shifted=''; for(let c of normalized) shifted+=caesarShift(c);
+      result.push(shifted);
+    }
+  });
+  return result.join(' ');
+}
 
-// Dicionário
-function toggleDictionary(){ const hud=document.getElementById('dictionaryHUD'); hud.style.display=hud.style.display==='block'?'none':'block'; if(hud.style.display==='block') updateDictionary();}
-function updateDictionary(){ const dictList=document.getElementById('dictList'); dictList.innerHTML=''; for(const [key,val] of Object.entries(specialWords)){ dictList.innerHTML+=`<li><strong>${key}</strong> → Símbolos: ${val.symbols}, Pronúncia: ${val.pronunciation}, Significado: ${val.meaning}</li>`;}}
+// Traduzir frase
+function translateHogler(){
+  const input=document.getElementById('inputText').value;
+  const tbody=document.querySelector('#outputTable tbody');
+  tbody.innerHTML='';
+  const words=input.match(/\S+/g)||[];
+  words.forEach(word=>{
+    const symbols=wordToHogler(word);
+    const pron=wordPronunciation(word);
+    const row=`<tr><td>${word}</td><td>${symbols} (${pron})</td></tr>`;
+    tbody.innerHTML+=row;
+  });
+}
 
-// IA
-function toggleAI(){ const hud=document.getElementById('aiHUD'); hud.style.display=hud.style.display==='block'?'none':'block'; document.getElementById('aiOutput').innerHTML='';}
-function autoAskAI(){ const select=document.getElementById('aiQuestions'); document.getElementById('aiInput').value=select.value; askAI(); }
-function askAI(){ const input=document.getElementById('aiInput').value.toLowerCase(); const output=document.getElementById('aiOutput'); let response=""; 
-if(input.includes("exemplos")){ const examples=Object.keys(specialWords); response="Exemplos de palavras em Hogler:\n"; examples.forEach(w=>{ response+=`${w} → ${wordToHogler(w)} (${wordPronunciation(w)})\n`; }); }
-else if(input.includes("regras")){ response="Regras do Hogler:\n- Cada letra aumenta +2 no alfabeto.\n- Palavras longas podem ser abreviadas em símbolos.\n- Algumas palavras comuns têm pronúncia especial (ex: 'oi' = Au).\n- É possível inverter a ordem de palavras em nomes.\n- Vocabulário aberto: qualquer pessoa pode criar novas palavras."; }
-else if(input.includes("traduza")){ let text=input.replace("traduza","").trim(); response="Tradução em Hogler:\n"; response+=`${text} → ${wordToHogler(text)} (${wordPronunciation(text)})`; }
-else if(input.includes("criar_vocabulario")){ response="Para criar um novo vocabulário:\n- Escolha palavras originais em português.\n- Defina símbolos únicos para Hogler.\n- Defina pronúncia e significado.\n- Adicione ao objeto 'specialWords' no código JavaScript."; }
-else{ response="IA Hogler: Não entendi. Escolha uma pergunta pré-definida."; }
-output.innerText=response;}
+// Ouvir frase inteira
+function listenHogler(){
+  const input=document.getElementById('inputText').value;
+  const utterance=new SpeechSynthesisUtterance(wordPronunciation(input));
+  utterance.lang='pt-BR';
+  window.speechSynthesis.speak(utterance);
+}
 </script>
+
 </body>
 </html>
