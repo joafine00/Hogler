@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hogler Translator Simplificado</title>
+<style>
+body { font-family: 'Courier New', monospace; background:#0e0e0e; color:#f0f0f0; margin:0; padding:0; }
+header { background:#222; padding:20px; text-align:center; font-size:2em; color:#ffcc00; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
+.container { padding:20px; }
+textarea { width:100%; height:100px; background:#1a1a1a; color:#f0f0f0; border:2px solid #444; border-radius:8px; padding:10px; font-size:16px; font-family:monospace; }
+button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; transition:0.3s; }
+#translateBtn { background-color:#ffcc00; }
+#translateBtn:hover { background-color:#e6b800; }
+#dictionaryBtn { background-color:#00ccff; }
+#dictionaryBtn:hover { background-color:#00b3e6; }
+table { width:100%; border-collapse:collapse; margin-top:20px; }
+th, td { padding:10px; border:1px solid #555; text-align:left; }
+th { background:#333; color:#ffcc00; }
+td { background:#222; }
+
+/* HUD do Dicionário */
+#dictionaryHUD { position:fixed; top:5%; left:50%; transform:translateX(-50%); width:85%; max-width:800px; background:#111; border:2px solid #ffcc00; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8); }
+#dictionaryHUD h2 { color:#ffcc00; margin-top:0; }
+#closeHUD { background:#ff3333; float:right; }
+#closeHUD:hover { background:#cc0000; }
+#dictList li { margin:5px 0; }
+</style>
+</head>
+<body>
+
+<header>Hogler Translator</header>
+<div class="container">
+<textarea id="inputText" placeholder="Digite seu texto ou frase aqui..."></textarea><br>
+<button id="translateBtn" onclick="translateHogler()">Traduzir</button>
+<button id="dictionaryBtn" onclick="toggleDictionary()">Dicionário</button>
+
+<table id="outputTable">
+<thead>
+<tr>
+<th>Palavra</th>
+<th>Como se escreve (pronúncia entre parênteses)</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<!-- HUD do Dicionário -->
+<div id="dictionaryHUD">
+<button id="closeHUD" onclick="toggleDictionary()">Fechar</button>
+<h2>Dicionário Hogler</h2>
+<p>Regras do idioma Hogler:</p>
+<ul>
+<li><strong>Cifra +2:</strong> Cada letra aumenta 2 posições no alfabeto.</li>
+<li><strong>Iniciais:</strong> Nomes longos usam apenas as primeiras letras de cada parte.</li>
+<li><strong>Troca de nomes e sobrenomes:</strong> É possível inverter a ordem.</li>
+<li><strong>Abreviação:</strong> Palavras longas são encurtadas em símbolos.</li>
+<li><strong>Pronúncia:</strong> Cada palavra é lida segundo o processo de +2 e conversão para símbolos.</li>
+<li><strong>Caracteres especiais:</strong> Acentos e símbolos são normalizados antes de aplicar +2.</li>
+</ul>
+
+<h3>Palavras conhecidas:</h3>
+<ul id="dictList"></ul>
+</div>
+
+<script>
+// Símbolos Hogler
+const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ'};
+
+// Palavras especiais
+const specialWords = {
+  "oi": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Saudação" },
+  "olá": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Saudação" },
+  "au": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Saudação" },
+  "nome": { symbols: "ㅁㅣ", pronunciation: "No", meaning: "Indicação de nome" },
+  "idade": { symbols: "ㅎㅣ", pronunciation: "Ida", meaning: "Indicação de idade" },
+  "país": { symbols: "ㅁㅓ", pronunciation: "Pais", meaning: "Indicação de país" },
+  "cidade": { symbols: "ㅅㅓ", pronunciation: "Cida", meaning: "Indicação de cidade" }
+};
+
+// Normalização de acentos
+function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function caesarShift(char){ 
+  const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
+  let upper=char.toUpperCase(); 
+  if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%26]; 
+  return char; 
+}
+
+// Detecta palavra especial
+function findExpression(text){
+  let normalized=normalizeWord(text).toLowerCase();
+  for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){
+    if(normalizeWord(key)===normalized || normalized.includes(normalizeWord(key))) return key;
+  }
+  return null;
+}
+
+// Converter palavra para Hogler (símbolos)
+function wordToHogler(word){
+  let expr=findExpression(word);
+  if(expr) return specialWords[expr].symbols;
+  let normalized=normalizeWord(word);
+  let shifted='';
+  for(let c of normalized) shifted+=caesarShift(c);
+  let symbols='';
+  for(let c of shifted){
+    let u=c.toUpperCase();
+    symbols+=hoglerSymbols[u]||c;
+  }
+  if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1]; // encurtar
+  return symbols;
+}
+
+// Pronúncia baseada na regra +2
+function wordPronunciation(word){
+  let expr=findExpression(word);
+  if(expr) return specialWords[expr].pronunciation;
+  let normalized=normalizeWord(word);
+  let shifted='';
+  for(let c of normalized) shifted+=caesarShift(c);
+  return shifted;
+}
+
+// Significado
+function getMeaning(word){
+  let expr=findExpression(word);
+  if(expr) return specialWords[expr].meaning;
+  return "Palavra normal";
+}
+
+// Traduzir frase completa
+function translateHogler(){
+  const input=document.getElementById('inputText').value;
+  const tbody=document.querySelector('#outputTable tbody');
+  tbody.innerHTML='';
+  const words=input.match(/\S+/g)||[];
+  words.forEach(word=>{
+    const symbols=wordToHogler(word);
+    const pron=wordPronunciation(word);
+    const meaning=getMeaning(word);
+    const row=`<tr>
+      <td>${word}</td>
+      <td>${symbols} (${pron})</td>
+      <td>${meaning}</td>
+    </tr>`;
+    tbody.innerHTML+=row;
+  });
+}
+
+// HUD dicionário
+function toggleDictionary(){
+  const hud=document.getElementById('dictionaryHUD');
+  hud.style.display=hud.style.display==='block'?'none':'block';
+  if(hud.style.display==='block') updateDictionary();
+}
+function updateDictionary(){
+  const dictList=document.getElementById('dictList');
+  dictList.innerHTML='';
+  for(const [key,val] of Object.entries(specialWords)){
+    dictList.innerHTML+=`<li><strong>${key}</strong> → Símbolos: ${val.symbols}, Pronúncia: ${val.pronunciation}, Significado: ${val.meaning}</li>`;
+  }
+}
+</script>
+</body>
+</html>
