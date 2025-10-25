@@ -143,11 +143,15 @@ const portugueseWords = {
   "olá": {symbols:"ㅇㅔ",pronunciation:"Au"},
   "nome": {symbols:"ㅁㅣ",pronunciation:"No"},
   "idade": {symbols:"ㅎㅣ",pronunciation:"Ida"},
-  "país": {symbols:"ㅁㅓ",pronunciation:"Pais"}
+  "país": {symbols:"ㅁㅓ",pronunciation:"Pais"},
+  "escrever": {symbols:"ㅅㅗㅗ",pronunciation:"Eskrev"},
+  "ler": {symbols:"ㅍㅕ",pronunciation:"Leer"}
 };
 const germanWords = {
   "hallo": {symbols:"ㅎㅏ",pronunciation:"Hallo"},
-  "welt": {symbols:"ㅗㅔ",pronunciation:"Welt"}
+  "welt": {symbols:"ㅗㅔ",pronunciation:"Welt"},
+  "schreiben": {symbols:"ㅅㅗㅂ",pronunciation:"Shraiben"},
+  "lesen": {symbols:"ㅍㅔ",pronunciation:"Leesen"}
 };
 const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ç':'ㄱ'};
 
@@ -155,16 +159,18 @@ const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'�
 function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
 function caesarShift(char, alphabet){ let upper=char.toUpperCase(); if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; return char; }
 
-// Conversão
+// Converter texto → símbolos Hogler
 function toHogler(word, lang){
   const dict = (lang==="pt")?portugueseWords:germanWords;
   const found = dict[word.toLowerCase()];
-  if(found) return found.symbols;
+  if(found) return found;
   let alphabet = (lang==="pt")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
   let shifted=''; for(let c of word) shifted+=caesarShift(c,alphabet);
   let symbols=''; for(let c of shifted){ symbols+=hoglerSymbols[c.toUpperCase()]||c;}
-  return symbols;
+  return {symbols, pronunciation: word};
 }
+
+// Converter Hogler → idioma
 function fromHogler(word, lang){
   const dict = (lang==="pt")?portugueseWords:germanWords;
   for(let [k,v] of Object.entries(dict)){
@@ -173,7 +179,7 @@ function fromHogler(word, lang){
   return "(desconhecido)";
 }
 
-// Tradução principal
+// Tradução
 function translateHogler(){
   const from=document.getElementById('fromLang').value;
   const to=document.getElementById('toLang').value;
@@ -185,23 +191,25 @@ function translateHogler(){
 
   const words=input.split(/\s+/);
   words.forEach(word=>{
-    let translated="";
+    let translated="", pronunciation="";
     if(from!=="hogler" && to==="hogler"){
-      translated=toHogler(word,from);
+      const result = toHogler(word,from);
+      translated = result.symbols;
+      pronunciation = result.pronunciation;
     } else if(from==="hogler" && to!=="hogler"){
-      translated=fromHogler(word,to);
+      translated = fromHogler(word,to);
     } else if(from!==to){
-      // via Hogler
-      let temp=toHogler(word,from);
-      translated=fromHogler(temp,to);
+      const temp = toHogler(word,from);
+      translated = fromHogler(temp.symbols,to);
     } else {
       translated=word;
     }
-    tbody.innerHTML+=`<tr><td>${word}</td><td>${translated}</td></tr>`;
+    const pronText = (to==="hogler" && pronunciation)? ` (${pronunciation})` : "";
+    tbody.innerHTML+=`<tr><td>${word}</td><td>${translated}${pronText}</td></tr>`;
   });
 }
 
-// Botão de inverter idiomas
+// Inverter idiomas
 function swapLanguages(){
   const from=document.getElementById('fromLang');
   const to=document.getElementById('toLang');
@@ -214,29 +222,26 @@ function swapLanguages(){
 let availableVoices = [];
 window.speechSynthesis.onvoiceschanged = () => {
   availableVoices = window.speechSynthesis.getVoices();
-  console.log("Vozes carregadas:", availableVoices.map(v=>v.name));
 };
 
+// Ouvir
 function listenHogler(){
-  const outputTable=document.querySelector('#outputTable tbody');
-  if(!outputTable.innerText.trim()) return;
+  const tbody=document.querySelector('#outputTable tbody');
+  if(!tbody.innerText.trim()) return;
 
-  const text=Array.from(outputTable.querySelectorAll('td:nth-child(2)'))
+  const text=Array.from(tbody.querySelectorAll('td:nth-child(2)'))
     .map(td=>td.innerText)
     .join(' ');
 
   const utterance=new SpeechSynthesisUtterance(text);
 
-  // Procurar voz do Google em alemão
   let germanVoice = availableVoices.find(v =>
-    v.name.toLowerCase().includes("google deutsch") ||
-    v.lang === "de-DE"
+    v.name.toLowerCase().includes("google deutsch") || v.lang === "de-DE"
   );
-
   if (!germanVoice && availableVoices.length > 0) germanVoice = availableVoices[0];
 
   utterance.voice = germanVoice;
-  utterance.lang = "de-DE"; // força alemão (mais fluido)
+  utterance.lang = "de-DE";
   utterance.rate = 1;
   utterance.pitch = 1;
   utterance.volume = 1;
@@ -246,13 +251,13 @@ function listenHogler(){
 }
 // ---------------------------------------------------
 
-// Atualiza dicionário
+// Dicionário
 function updateDictionary(){
   const dictList=document.getElementById('dictList');
   dictList.innerHTML='';
   const combined={...portugueseWords,...germanWords};
   for(const [k,v] of Object.entries(combined)){
-    dictList.innerHTML+=`<li><strong>${k}</strong> → ${v.symbols} (${v.pronunciation})</li>`;
+    dictList.innerHTML+=`<li><strong>${k}</strong> → Símbolos: ${v.symbols}, Pronúncia: ${v.pronunciation}</li>`;
   }
 }
 updateDictionary();
