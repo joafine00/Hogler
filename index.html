@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hogler Translator</title>
+<title>Hogler Translator - Alemão</title>
 <style>
 body { font-family:'Courier New',monospace; background:#0e0e0e; color:#f0f0f0; margin:0; padding:0; }
 header { background:#222; padding:10px 20px; color:#ffcc00; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
 header h1 { margin:0; font-size:1.8em; }
-nav a { color:#ffcc00; text-decoration:none; margin-left:15px; font-weight:bold; transition:0.3s;}
-nav a:hover { color:#fff; }
-.container { padding:20px; }
+nav a { color:#ffcc00; text-decoration:none; margin-left:15px; font-weight:bold; cursor:pointer; transition:0.3s;}
+nav a:hover, nav a.active { color:#fff; }
+.container { padding:20px; display:none; }
 textarea { width:100%; height:100px; background:#1a1a1a; color:#f0f0f0; border:2px solid #444; border-radius:8px; padding:10px; font-size:16px; font-family:monospace; }
 button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none; border-radius:5px; cursor:pointer; font-weight:bold; }
 #translateBtn { background-color:#ffcc00; } #listenBtn { background-color:#33cc33; }
@@ -18,6 +18,8 @@ table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #555; text-align:left; }
 th { background:#333; color:#ffcc00; } td { background:#222; }
 footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border-top:1px solid #444; }
+/* abas */
+.tabcontent { display:none; }
 </style>
 </head>
 <body>
@@ -25,11 +27,15 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 <header>
 <h1>Hogler Translator</h1>
 <nav>
-  <a href="https://dsc.gg/ispasyu" target="_blank">Discord</a>
+<a class="tablink active" onclick="openTab(event,'Tradutor')">Tradutor</a>
+<a class="tablink" onclick="openTab(event,'Dicionario')">Dicionário</a>
+<a class="tablink" onclick="openTab(event,'IA')">IA Hogler</a>
+<a class="tablink" onclick="openTab(event,'Sobre')">Sobre</a>
 </nav>
 </header>
 
-<div class="container">
+<!-- Tradutor -->
+<div id="Tradutor" class="container tabcontent" style="display:block;">
 <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea><br>
 <button id="translateBtn" onclick="translateHogler()">Traduzir</button>
 <button id="listenBtn" onclick="listenHogler()">Ouvir</button>
@@ -45,70 +51,75 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 </table>
 </div>
 
-<footer>Made In Portugal</footer>
+<!-- Dicionário -->
+<div id="Dicionario" class="container tabcontent">
+<h2>Dicionário Hogler</h2>
+<ul id="dictList"></ul>
+</div>
+
+<!-- IA -->
+<div id="IA" class="container tabcontent">
+<h2>IA Hogler</h2>
+<p>Escolha uma pergunta pré-definida:</p>
+<select id="aiQuestions" onchange="autoAskAI()">
+<option value="">--Escolha uma pergunta--</option>
+<option value="exemplos">Diga exemplos de palavras em Hogler</option>
+<option value="regras">Explique as regras do Hogler</option>
+<option value="traduza">Traduza uma frase</option>
+<option value="criar_vocabulario">Como criar um novo vocabulário</option>
+</select>
+<textarea id="aiInput" placeholder="Digite seu pedido para a IA..."></textarea><br>
+<button onclick="askAI()">Executar IA</button>
+<div id="aiOutput"></div>
+</div>
+
+<!-- Sobre -->
+<div id="Sobre" class="container tabcontent">
+<h2>Sobre</h2>
+<p><a href="https://dsc.gg/ispasyu" target="_blank">Discord</a></p>
+<p>Made in Portugal</p>
+</div>
 
 <script>
-// Símbolos Hogler
-const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ç':'ㄱ'};
+// Função abas
+function openTab(evt, tabName){
+  let tabcontent=document.querySelectorAll('.tabcontent');
+  tabcontent.forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tablink').forEach(l=>l.classList.remove('active'));
+  document.getElementById(tabName).style.display='block';
+  evt.currentTarget.classList.add('active');
+}
+
+// Alfabeto alemão (inclui Ä Ö Ü ß)
+const germanAlphabet="AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
+
+// Símbolos Hogler (simples)
+const hoglerSymbols = {'A':'ㅁ','Ä':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','Ö':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','Ü':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','ß':'ㅅ'};
 
 // Palavras especiais
-const specialWords = {
-"oi": {symbols:"ㅇㅔ",pronunciation:"Au"},
-"olá": {symbols:"ㅇㅔ",pronunciation:"Au"},
-"nome": {symbols:"ㅁㅣ",pronunciation:"No"},
-"idade": {symbols:"ㅎㅣ",pronunciation:"Ida"},
-"país": {symbols:"ㅁㅓ",pronunciation:"Pais"},
-"cidade": {symbols:"ㅅㅓ",pronunciation:"Cida"}
+let specialWords = {
+"hallo": {symbols:"ㅎㅏ",pronunciation:"Hallo"},
+"welt": {symbols:"ㅗㅔ",pronunciation:"Welt"}
 };
 
-// Normalização e cifra
-function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-function caesarShift(char){ const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÇ"; let upper=char.toUpperCase(); if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; return char; }
+// Funções auxiliares
+function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+function caesarShift(char){ let upper=char.toUpperCase(); if(germanAlphabet.includes(upper)) return germanAlphabet[(germanAlphabet.indexOf(upper)+2)%germanAlphabet.length]; return char; }
 function findExpression(text){ let normalized=normalizeWord(text).toLowerCase(); for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){ if(normalizeWord(key)===normalized) return key;} return null; }
 
-// Converter palavra para Hogler
-function wordToHogler(word){
-  let expr=findExpression(word);
-  if(expr) return specialWords[expr].symbols;
-  let normalized=normalizeWord(word);
-  let shifted=''; for(let c of normalized) shifted+=caesarShift(c);
-  let symbols=''; for(let c of shifted){ let u=c.toUpperCase(); symbols+=hoglerSymbols[u]||c; }
-  return symbols;
-}
+// Tradutor
+function wordToHogler(word){ let expr=findExpression(word); if(expr) return specialWords[expr].symbols; let shifted=''; for(let c of word) shifted+=caesarShift(c); let symbols=''; for(let c of shifted){ symbols+=hoglerSymbols[c.toUpperCase()]||c;} return symbols; }
+function wordPronunciation(text){ let words=text.split(/\s+/); let result=[]; words.forEach(word=>{ let expr=findExpression(word); if(expr) result.push(specialWords[expr].pronunciation); else { let shifted=''; for(let c of word) shifted+=caesarShift(c); result.push(shifted); } }); return result.join(' '); }
+function translateHogler(){ const input=document.getElementById('inputText').value; const tbody=document.querySelector('#outputTable tbody'); tbody.innerHTML=''; const words=input.match(/\S+/g)||[]; words.forEach(word=>{ const symbols=wordToHogler(word); const pron=wordPronunciation(word); const row=`<tr><td>${word}</td><td>${symbols} (${pron})</td></tr>`; tbody.innerHTML+=row; }); }
+function listenHogler(){ const input=document.getElementById('inputText').value; const utterance=new SpeechSynthesisUtterance(wordPronunciation(input)); utterance.lang='de-DE'; window.speechSynthesis.speak(utterance); }
 
-// Pronúncia frase inteira
-function wordPronunciation(text){
-  let words=text.split(/\s+/);
-  let result=[];
-  words.forEach(word => {
-    let expr=findExpression(word);
-    if(expr) result.push(specialWords[expr].pronunciation);
-    else { let normalized=normalizeWord(word); let shifted=''; for(let c of normalized) shifted+=caesarShift(c); result.push(shifted);}
-  });
-  return result.join(' ');
-}
+// Dicionário
+function updateDictionary(){ const dictList=document.getElementById('dictList'); dictList.innerHTML=''; for(const [k,v] of Object.entries(specialWords)){ dictList.innerHTML+=`<li><strong>${k}</strong> → Símbolos: ${v.symbols}, Pronúncia: ${v.pronunciation}</li>`;} }
+updateDictionary();
 
-// Traduzir frase
-function translateHogler(){
-  const input=document.getElementById('inputText').value;
-  const tbody=document.querySelector('#outputTable tbody');
-  tbody.innerHTML='';
-  const words=input.match(/\S+/g)||[];
-  words.forEach(word=>{
-    const symbols=wordToHogler(word);
-    const pron=wordPronunciation(word);
-    const row=`<tr><td>${word}</td><td>${symbols} (${pron})</td></tr>`;
-    tbody.innerHTML+=row;
-  });
-}
-
-// Ouvir frase inteira
-function listenHogler(){
-  const input=document.getElementById('inputText').value;
-  const utterance=new SpeechSynthesisUtterance(wordPronunciation(input));
-  utterance.lang='pt-BR';
-  window.speechSynthesis.speak(utterance);
-}
+// IA simplificada
+function autoAskAI(){ const select=document.getElementById('aiQuestions'); document.getElementById('aiInput').value=select.value; askAI();}
+function askAI(){ const input=document.getElementById('aiInput').value.toLowerCase(); const output=document.getElementById('aiOutput'); let response=""; if(input.includes("exemplos")){ const examples=Object.keys(specialWords); response="Exemplos de palavras:\n"; examples.forEach(w=>{ response+=`${w} → ${wordToHogler(w)} (${wordPronunciation(w)})\n`; }); } else if(input.includes("regras")){ response="Regras do Hogler (Alemão):\n- Cada letra +2 no alfabeto alemão.\n- Letras especiais Ä Ö Ü ß são consideradas.\n- Símbolos representam cada letra.\n- Palavras especiais podem ter pronúncia definida."; } else { response="IA Hogler: Não entendi. Escolha uma pergunta pré-definida."; } output.innerText=response;}
 </script>
 
 </body>
