@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tradutor Hogler</title>
+<title>Hogler Translator + IA</title>
 <style>
 body { font-family: 'Courier New', monospace; background:#0e0e0e; color:#f0f0f0; margin:0; padding:0; }
 header { background:#222; padding:20px; text-align:center; font-size:2em; color:#ffcc00; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
@@ -16,33 +16,33 @@ button { margin:10px 5px 10px 0; padding:10px 20px; font-size:16px; border:none;
 #dictionaryBtn:hover { background-color:#00b3e6; }
 #listenBtn { background-color:#33cc33; }
 #listenBtn:hover { background-color:#28a428; }
+#aiBtn { background-color:#ff66cc; }
+#aiBtn:hover { background-color:#e65cb3; }
 table { width:100%; border-collapse:collapse; margin-top:20px; }
 th, td { padding:10px; border:1px solid #555; text-align:left; }
 th { background:#333; color:#ffcc00; }
 td { background:#222; }
-
-/* HUD do Dicionário */
 #dictionaryHUD { position:fixed; top:5%; left:50%; transform:translateX(-50%); width:85%; max-width:800px; background:#111; border:2px solid #ffcc00; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8); }
 #dictionaryHUD h2 { color:#ffcc00; margin-top:0; }
 #closeHUD { background:#ff3333; float:right; }
 #closeHUD:hover { background:#cc0000; }
 #dictList li { margin:5px 0; }
-
-/* Informações adicionais */
-#infoBox { background:#111; border:2px solid #ffcc00; border-radius:12px; padding:15px; margin-top:20px; }
-#infoBox h3 { color:#ffcc00; margin-top:0; }
-#infoBox p { margin:5px 0; }
-#exampleHogler { background:#222; border:1px solid #555; padding:10px; border-radius:8px; margin-top:10px; font-family:monospace; }
+#aiHUD { position:fixed; top:5%; left:50%; transform:translateX(-50%); width:85%; max-width:800px; background:#111; border:2px solid #ff66cc; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8); }
+#aiHUD h2 { color:#ff66cc; margin-top:0; }
+#closeAI { background:#ff3333; float:right; }
+#closeAI:hover { background:#cc0000; }
+#aiOutput { background:#222; border:1px solid #555; padding:10px; border-radius:8px; margin-top:10px; font-family:monospace; white-space:pre-wrap; }
 </style>
 </head>
 <body>
 
-<header>Tradutor Hogler</header>
+<header>Hogler Translator + IA</header>
 <div class="container">
-<textarea id="inputText" placeholder="Digite seu texto ou frase aqui..."></textarea><br>
+<textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea><br>
 <button id="translateBtn" onclick="translateHogler()">Traduzir</button>
 <button id="listenBtn" onclick="listenHogler()">Ouvir</button>
 <button id="dictionaryBtn" onclick="toggleDictionary()">Dicionário</button>
+<button id="aiBtn" onclick="toggleAI()">IA Hogler</button>
 
 <table id="outputTable">
 <thead>
@@ -54,16 +54,6 @@ td { background:#222; }
 </thead>
 <tbody></tbody>
 </table>
-
-<!-- Bloco de informações -->
-<div id="infoBox">
-<h3>Sobre o Hogler / About Hogler</h3>
-<p>Este site traduz todas as palavras a partir do idioma <strong>português</strong>. Por isso, dependendo do idioma, a ordem das palavras pode mudar.</p>
-<p>This site translates all words from the <strong>Portuguese</strong> language. Therefore, depending on the language, the word order may change.</p>
-
-<p>Exemplo de texto em Hogler:</p>
-<div id="exampleHogler">AQOK OKPGETCHV EQO AQ GP TGFTC PTUGUEZ</div>
-</div>
 </div>
 
 <!-- HUD do Dicionário -->
@@ -77,11 +67,22 @@ td { background:#222; }
 <li><strong>Troca de nomes:</strong> É possível inverter a ordem.</li>
 <li><strong>Abreviação:</strong> Palavras longas são encurtadas em símbolos.</li>
 <li><strong>Pronúncia:</strong> Cada palavra é lida segundo o processo de +2 e conversão para símbolos.</li>
+<li><strong>Exemplo:</strong> "Saudação" = Au (ㅁㅔ)</li>
 <li><strong>Caracteres especiais:</strong> Acentos e símbolos são normalizados antes de aplicar +2.</li>
 </ul>
 
 <h3>Palavras conhecidas:</h3>
 <ul id="dictList"></ul>
+</div>
+
+<!-- HUD da IA -->
+<div id="aiHUD">
+<button id="closeAI" onclick="toggleAI()">Fechar</button>
+<h2>IA Hogler</h2>
+<p>Peça à IA para gerar exemplos, explicar regras ou traduzir frases em Hogler:</p>
+<textarea id="aiInput" placeholder="Digite seu pedido para a IA..."></textarea><br>
+<button onclick="askAI()">Executar IA</button>
+<div id="aiOutput"></div>
 </div>
 
 <script>
@@ -92,16 +93,16 @@ const hoglerSymbols = {
 
 // Palavras especiais
 const specialWords = {
-  "oi": { symbols: "ㅇㅔ", pronunciation: "Oi", meaning: "Saudação" },
-  "olá": { symbols: "ㅇㅔ", pronunciation: "Olá", meaning: "Saudação" },
-  "nome": { symbols: "ㅁㅣ", pronunciation: "Nome", meaning: "Indicação de nome" },
-  "idade": { symbols: "ㅎㅣ", pronunciation: "Idade", meaning: "Indicação de idade" },
-  "país": { symbols: "ㅁㅓ", pronunciation: "País", meaning: "Indicação de país" },
-  "cidade": { symbols: "ㅅㅓ", pronunciation: "Cidade", meaning: "Indicação de cidade" },
+  "oi": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Saudação" },
+  "olá": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Saudação" },
+  "nome": { symbols: "ㅁㅣ", pronunciation: "No", meaning: "Indicação de nome" },
+  "idade": { symbols: "ㅎㅣ", pronunciation: "Ida", meaning: "Indicação de idade" },
+  "país": { symbols: "ㅁㅓ", pronunciation: "Pais", meaning: "Indicação de país" },
+  "cidade": { symbols: "ㅅㅓ", pronunciation: "Cida", meaning: "Indicação de cidade" },
   "difícil": { symbols: "ㄴㅏ", pronunciation: "Difícil", meaning: "Palavra um pouco difícil" }
 };
 
-// Normalização de acentos
+// Normalização
 function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function caesarShift(char){ 
   const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÇ"; 
@@ -109,8 +110,6 @@ function caesarShift(char){
   if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; 
   return char; 
 }
-
-// Detecta palavra especial
 function findExpression(text){
   let normalized=normalizeWord(text).toLowerCase();
   for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){
@@ -118,8 +117,6 @@ function findExpression(text){
   }
   return null;
 }
-
-// Converter palavra para Hogler
 function wordToHogler(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].symbols;
@@ -131,11 +128,9 @@ function wordToHogler(word){
     let u=c.toUpperCase();
     symbols+=hoglerSymbols[u]||c;
   }
-  if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1]; // encurtar
+  if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1];
   return symbols;
 }
-
-// Pronúncia
 function wordPronunciation(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].pronunciation;
@@ -144,15 +139,13 @@ function wordPronunciation(word){
   for(let c of normalized) shifted+=caesarShift(c);
   return shifted;
 }
-
-// Significado
 function getMeaning(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].meaning;
   return "Palavra normal";
 }
 
-// Traduzir frase completa
+// Traduzir
 function translateHogler(){
   const input=document.getElementById('inputText').value;
   const tbody=document.querySelector('#outputTable tbody');
@@ -171,7 +164,17 @@ function translateHogler(){
   });
 }
 
-// HUD dicionário
+// Ouvir
+function listenHogler(){
+  const input=document.getElementById('inputText').value;
+  const words=input.match(/\S+/g)||[];
+  const pronWords = words.map(w=>wordPronunciation(w));
+  const utterance = new SpeechSynthesisUtterance(pronWords.join(' '));
+  utterance.lang = 'pt-BR';
+  window.speechSynthesis.speak(utterance);
+}
+
+// Dicionário
 function toggleDictionary(){
   const hud=document.getElementById('dictionaryHUD');
   hud.style.display=hud.style.display==='block'?'none':'block';
@@ -185,18 +188,42 @@ function updateDictionary(){
   }
 }
 
-// Ouvir palavra/frase completa
-function listenHogler(){
-  const input=document.getElementById('inputText').value;
-  const words=input.match(/\S+/g)||[];
-  const pronWords = words.map(w=>wordPronunciation(w));
-  const utterance = new SpeechSynthesisUtterance(pronWords.join(' '));
-  utterance.lang = 'pt-BR';
-  window.speechSynthesis.speak(utterance);
+// IA Hogler
+function toggleAI(){
+  const hud=document.getElementById('aiHUD');
+  hud.style.display=hud.style.display==='block'?'none':'block';
+  document.getElementById('aiOutput').innerHTML='';
 }
+function askAI(){
+  const input=document.getElementById('aiInput').value.toLowerCase();
+  const output=document.getElementById('aiOutput');
+  let response="";
 
-// Texto exemplo em Hogler
-document.getElementById('inputText').value = "AQOK OKPGETCHV EQO AQ GP TGFTC PTUGUEZ";
+  // Exemplos básicos de IA
+  if(input.includes("exemplo") || input.includes("diga algo")){
+    const examples=["oi", "olá", "nome", "cidade", "difícil"];
+    response="Exemplos de palavras em Hogler:\n";
+    examples.forEach(w=>{
+      response+=`${w} → ${wordToHogler(w)} (${wordPronunciation(w)})\n`;
+    });
+  } else if(input.includes("explica") || input.includes("regras")){
+    response="Regras do Hogler explicadas:\n";
+    response+="- Cada letra aumenta +2 no alfabeto.\n";
+    response+="- Palavras longas podem ser abreviadas em símbolos.\n";
+    response+="- Algumas palavras comuns têm pronúncia especial (ex: 'oi' = Au).\n";
+    response+="- É possível inverter ordem de palavras em nomes.\n";
+  } else if(input.includes("traduza")){
+    let words=input.replace("traduza","").trim().split(" ");
+    response="Tradução em Hogler:\n";
+    words.forEach(w=>{
+      response+=`${w} → ${wordToHogler(w)} (${wordPronunciation(w)})\n`;
+    });
+  } else {
+    response="IA Hogler: Não entendi sua solicitação. Tente pedir 'diga algo', 'explica regras' ou 'traduza ...'.";
+  }
+
+  output.innerText=response;
+}
 </script>
 </body>
 </html>
