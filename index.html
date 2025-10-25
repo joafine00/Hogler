@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hogler Translator Simplified</title>
+<title>Tradutor Hogler</title>
 <style>
 body { font-family: 'Courier New', monospace; background:#0e0e0e; color:#f0f0f0; margin:0; padding:0; }
 header { background:#222; padding:20px; text-align:center; font-size:2em; color:#ffcc00; box-shadow:0 4px 6px rgba(0,0,0,0.5);}
@@ -21,7 +21,7 @@ th, td { padding:10px; border:1px solid #555; text-align:left; }
 th { background:#333; color:#ffcc00; }
 td { background:#222; }
 
-/* Dictionary HUD */
+/* HUD do Dicionário */
 #dictionaryHUD { position:fixed; top:5%; left:50%; transform:translateX(-50%); width:85%; max-width:800px; background:#111; border:2px solid #ffcc00; border-radius:12px; padding:20px; display:none; z-index:1000; box-shadow:0 8px 16px rgba(0,0,0,0.8); }
 #dictionaryHUD h2 { color:#ffcc00; margin-top:0; }
 #closeHUD { background:#ff3333; float:right; }
@@ -31,67 +31,70 @@ td { background:#222; }
 </head>
 <body>
 
-<header>Hogler Translator</header>
+<header>Tradutor Hogler</header>
 <div class="container">
-<textarea id="inputText" placeholder="Type your text or sentence here..."></textarea><br>
-<button id="translateBtn" onclick="translateHogler()">Translate</button>
-<button id="listenBtn" onclick="listenHogler()">Listen</button>
-<button id="dictionaryBtn" onclick="toggleDictionary()">Dictionary</button>
+<textarea id="inputText" placeholder="Digite seu texto ou frase aqui..."></textarea><br>
+<button id="translateBtn" onclick="translateHogler()">Traduzir</button>
+<button id="listenBtn" onclick="listenHogler()">Ouvir</button>
+<button id="dictionaryBtn" onclick="toggleDictionary()">Dicionário</button>
 
 <table id="outputTable">
 <thead>
 <tr>
-<th>Word</th>
-<th>Hogler (Pronunciation)</th>
-<th>Meaning</th>
+<th>Palavra</th>
+<th>Hogler (Pronúncia)</th>
+<th>Significado</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- Dictionary HUD -->
+<!-- HUD do Dicionário -->
 <div id="dictionaryHUD">
-<button id="closeHUD" onclick="toggleDictionary()">Close</button>
-<h2>Hogler Dictionary</h2>
-<p>Hogler language rules:</p>
+<button id="closeHUD" onclick="toggleDictionary()">Fechar</button>
+<h2>Dicionário Hogler</h2>
+<p>Regras do idioma Hogler:</p>
 <ul>
-<li><strong>+2 Cipher:</strong> Each letter shifts 2 positions in the alphabet.</li>
-<li><strong>Initials:</strong> Long names use only the first letters of each part.</li>
-<li><strong>Swap names:</strong> First and last names can be inverted.</li>
-<li><strong>Abbreviations:</strong> Long words are shortened into symbols.</li>
-<li><strong>Pronunciation:</strong> Each word is read following +2 shift and symbol conversion.</li>
-<li><strong>Special characters:</strong> Accents and symbols are normalized before +2 shift.</li>
+<li><strong>Cifra +2:</strong> Cada letra aumenta 2 posições no alfabeto.</li>
+<li><strong>Iniciais:</strong> Nomes longos usam apenas as primeiras letras de cada parte.</li>
+<li><strong>Troca de nomes:</strong> É possível inverter a ordem.</li>
+<li><strong>Abreviação:</strong> Palavras longas são encurtadas em símbolos.</li>
+<li><strong>Pronúncia:</strong> Cada palavra é lida segundo o processo de +2 e conversão para símbolos.</li>
+<li><strong>Caracteres especiais:</strong> Acentos e símbolos são normalizados antes de aplicar +2.</li>
 </ul>
 
-<h3>Known words:</h3>
+<h3>Palavras conhecidas:</h3>
 <ul id="dictList"></ul>
 </div>
 
 <script>
-// Hogler symbols
-const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ'};
-
-// Special words
-const specialWords = {
-  "hi": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Greeting" },
-  "hello": { symbols: "ㅇㅔ", pronunciation: "Au", meaning: "Greeting" },
-  "name": { symbols: "ㅁㅣ", pronunciation: "No", meaning: "Name indicator" },
-  "age": { symbols: "ㅎㅣ", pronunciation: "Ida", meaning: "Age indicator" },
-  "country": { symbols: "ㅁㅓ", pronunciation: "Pais", meaning: "Country indicator" },
-  "city": { symbols: "ㅅㅓ", pronunciation: "Cida", meaning: "City indicator" }
+// Símbolos Hogler (adaptado para português)
+const hoglerSymbols = {
+  'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ç':'ㄱ'
 };
 
-// Normalize accents
+// Palavras especiais
+const specialWords = {
+  "oi": { symbols: "ㅇㅔ", pronunciation: "Oi", meaning: "Saudação" },
+  "olá": { symbols: "ㅇㅔ", pronunciation: "Olá", meaning: "Saudação" },
+  "nome": { symbols: "ㅁㅣ", pronunciation: "Nome", meaning: "Indicação de nome" },
+  "idade": { symbols: "ㅎㅣ", pronunciation: "Idade", meaning: "Indicação de idade" },
+  "país": { symbols: "ㅁㅓ", pronunciation: "País", meaning: "Indicação de país" },
+  "cidade": { symbols: "ㅅㅓ", pronunciation: "Cidade", meaning: "Indicação de cidade" },
+  "difícil": { symbols: "ㄴㅏ", pronunciation: "Difícil", meaning: "Palavra um pouco difícil" }
+};
+
+// Normalização de acentos
 function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function caesarShift(char){ 
-  const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
+  const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZÇ"; 
   let upper=char.toUpperCase(); 
-  if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%26]; 
+  if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; 
   return char; 
 }
 
-// Detect special word
+// Detecta palavra especial
 function findExpression(text){
   let normalized=normalizeWord(text).toLowerCase();
   for(let key of Object.keys(specialWords).sort((a,b)=>b.length-a.length)){
@@ -100,7 +103,7 @@ function findExpression(text){
   return null;
 }
 
-// Convert word to Hogler symbols
+// Converter palavra para Hogler
 function wordToHogler(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].symbols;
@@ -112,11 +115,11 @@ function wordToHogler(word){
     let u=c.toUpperCase();
     symbols+=hoglerSymbols[u]||c;
   }
-  if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1]; // shorten
+  if(symbols.length>3) symbols=symbols[0]+symbols[symbols.length-1]; // encurtar
   return symbols;
 }
 
-// Pronunciation
+// Pronúncia
 function wordPronunciation(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].pronunciation;
@@ -126,14 +129,14 @@ function wordPronunciation(word){
   return shifted;
 }
 
-// Meaning
+// Significado
 function getMeaning(word){
   let expr=findExpression(word);
   if(expr) return specialWords[expr].meaning;
-  return "Normal word";
+  return "Palavra normal";
 }
 
-// Translate full sentence
+// Traduzir frase completa
 function translateHogler(){
   const input=document.getElementById('inputText').value;
   const tbody=document.querySelector('#outputTable tbody');
@@ -152,7 +155,7 @@ function translateHogler(){
   });
 }
 
-// HUD dictionary
+// HUD dicionário
 function toggleDictionary(){
   const hud=document.getElementById('dictionaryHUD');
   hud.style.display=hud.style.display==='block'?'none':'block';
@@ -162,19 +165,22 @@ function updateDictionary(){
   const dictList=document.getElementById('dictList');
   dictList.innerHTML='';
   for(const [key,val] of Object.entries(specialWords)){
-    dictList.innerHTML+=`<li><strong>${key}</strong> → Symbols: ${val.symbols}, Pronunciation: ${val.pronunciation}, Meaning: ${val.meaning}</li>`;
+    dictList.innerHTML+=`<li><strong>${key}</strong> → Símbolos: ${val.symbols}, Pronúncia: ${val.pronunciation}, Significado: ${val.meaning}</li>`;
   }
 }
 
-// Listen button: reads full sentence
+// Ouvir palavra/frase completa
 function listenHogler(){
   const input=document.getElementById('inputText').value;
   const words=input.match(/\S+/g)||[];
   const pronWords = words.map(w=>wordPronunciation(w));
   const utterance = new SpeechSynthesisUtterance(pronWords.join(' '));
-  utterance.lang = 'en-US';
+  utterance.lang = 'pt-BR';
   window.speechSynthesis.speak(utterance);
 }
+
+// Texto exemplo em Hogler
+document.getElementById('inputText').value = "AQOK OKPGETCHV EQO AQ GP TGFTC PTUGUEZ";
 </script>
 </body>
 </html>
