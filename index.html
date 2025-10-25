@@ -47,7 +47,6 @@ button:hover {
   box-shadow: 0 0 10px #ffcc00;
 }
 #translateBtn { background: #ffcc00; color: #000; }
-#swapBtn { background: #ff6600; color: #000; }
 #listenBtn { background: #33cc33; color: #000; }
 textarea {
   width: 100%;
@@ -87,29 +86,20 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 
 <!-- Tradutor -->
 <div id="Tradutor" class="container active">
-  <p>Selecione os idiomas:</p>
-  <select id="fromLang">
-    <option value="pt">Português</option>
-    <option value="de">Alemão</option>
-    <option value="hogler">Hogler</option>
-  </select>
-  <button id="swapBtn" onclick="swapLanguages()">🔄 Inverter</button>
+  <p>Digite texto em Português, Alemão ou Hogler (símbolos ou letras)</p>
   <select id="toLang">
-    <option value="hogler">Hogler</option>
-    <option value="pt">Português</option>
-    <option value="de">Alemão</option>
+    <option value="pt">Traduzir para Português</option>
+    <option value="de">Traduzir para Alemão</option>
+    <option value="hogler">Traduzir para Hogler</option>
   </select>
 
-  <textarea id="inputText" placeholder="Digite seu texto aqui..."></textarea><br>
-  <button id="translateBtn" onclick="translateHogler()">Traduzir</button>
+  <textarea id="inputText" placeholder="Digite aqui..."></textarea><br>
+  <button id="translateBtn" onclick="autoTranslate()">Traduzir</button>
   <button id="listenBtn" onclick="listenHogler()">Ouvir</button>
 
   <table id="outputTable">
     <thead>
-      <tr>
-        <th>Texto</th>
-        <th>Tradução</th>
-      </tr>
+      <tr><th>Entrada</th><th>Tradução</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -129,7 +119,6 @@ footer { text-align:center; padding:15px; color:#ffcc00; margin-top:20px; border
 </div>
 
 <script>
-// Função de abas
 function openTab(evt, tabName){
   document.querySelectorAll('.container').forEach(c=>c.classList.remove('active'));
   document.querySelectorAll('.tablink').forEach(l=>l.classList.remove('active'));
@@ -137,127 +126,103 @@ function openTab(evt, tabName){
   evt.currentTarget.classList.add('active');
 }
 
-// Vocabulário
+// Dicionários base
 const portugueseWords = {
   "oi": {symbols:"ㅇㅔ",pronunciation:"Au"},
   "olá": {symbols:"ㅇㅔ",pronunciation:"Au"},
   "nome": {symbols:"ㅁㅣ",pronunciation:"No"},
   "idade": {symbols:"ㅎㅣ",pronunciation:"Ida"},
   "país": {symbols:"ㅁㅓ",pronunciation:"Pais"},
-  "escrever": {symbols:"ㅅㅗㅗ",pronunciation:"Eskrev"},
-  "ler": {symbols:"ㅍㅕ",pronunciation:"Leer"}
+  "banido": {symbols:"ㄹㅇㅕㅋㅂㅏ",pronunciation:"Ronyekaba"}
 };
 const germanWords = {
   "hallo": {symbols:"ㅎㅏ",pronunciation:"Hallo"},
-  "welt": {symbols:"ㅗㅔ",pronunciation:"Welt"},
-  "schreiben": {symbols:"ㅅㅗㅂ",pronunciation:"Shraiben"},
-  "lesen": {symbols:"ㅍㅔ",pronunciation:"Leesen"}
+  "welt": {symbols:"ㅗㅔ",pronunciation:"Welt"}
 };
 const hoglerSymbols = {'A':'ㅁ','B':'ㄴ','C':'ㅇ','D':'ㄹ','E':'ㅎ','F':'ㅂ','G':'ㅅ','H':'ㅈ','I':'ㅌ','J':'ㄱ','K':'ㅋ','L':'ㅍ','M':'ㅠ','N':'ㅛ','O':'ㅑ','P':'ㅕ','Q':'ㅏ','R':'ㅣ','S':'ㅡ','T':'ㅗ','U':'ㅓ','V':'ㅐ','W':'ㅔ','X':'ㅂ','Y':'ㅊ','Z':'ㅌ','Ç':'ㄱ'};
 
-// Normalização e cifra
-function normalizeWord(word){ return word.normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
-function caesarShift(char, alphabet){ let upper=char.toUpperCase(); if(alphabet.includes(upper)) return alphabet[(alphabet.indexOf(upper)+2)%alphabet.length]; return char; }
+// Funções base
+function normalizeWord(w){return w.normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+function caesarShift(char,alphabet){let u=char.toUpperCase();if(alphabet.includes(u))return alphabet[(alphabet.indexOf(u)+2)%alphabet.length];return char;}
+function reverseShift(char,alphabet){let u=char.toUpperCase();if(alphabet.includes(u))return alphabet[(alphabet.indexOf(u)-2+alphabet.length)%alphabet.length];return char;}
 
-// Converter texto → símbolos Hogler
-function toHogler(word, lang){
-  const dict = (lang==="pt")?portugueseWords:germanWords;
-  const found = dict[word.toLowerCase()];
-  if(found) return found;
-  let alphabet = (lang==="pt")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
-  let shifted=''; for(let c of word) shifted+=caesarShift(c,alphabet);
-  let symbols=''; for(let c of shifted){ symbols+=hoglerSymbols[c.toUpperCase()]||c;}
-  return {symbols, pronunciation: word};
+// Detectar tipo de texto inserido
+function detectType(text){
+  if(/[ㅁ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text)) return "hoglerSymbols";
+  if(/^[A-ZÇÄÖÜß]+$/i.test(text.replace(/\s+/g,''))) return "hoglerLetters";
+  if(/[a-záéíóúãõâêô]/i.test(text)) return "normal";
+  return "unknown";
 }
 
-// Converter Hogler → idioma
-function fromHogler(word, lang){
-  const dict = (lang==="pt")?portugueseWords:germanWords;
-  for(let [k,v] of Object.entries(dict)){
-    if(v.symbols===word) return k;
+// Converter para Hogler
+function toHogler(word,lang){
+  const dict = lang==="pt"?portugueseWords:germanWords;
+  const f = dict[word.toLowerCase()];
+  if(f) return f.symbols;
+  const alphabet=(lang==="pt")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
+  let shifted='';for(let c of word) shifted+=caesarShift(c,alphabet);
+  let symbols='';for(let c of shifted) symbols+=hoglerSymbols[c.toUpperCase()]||c;
+  return symbols;
+}
+
+// Converter de Hogler letras → normal
+function fromHoglerLetters(word,lang){
+  const alphabet=(lang==="pt")?"ABCDEFGHIJKLMNOPQRSTUVWXYZÇ":"AÄBCDEFGHIJKLMNOPQRSTUVWXYZÖÜß";
+  let shifted='';for(let c of word) shifted+=reverseShift(c,alphabet);
+  return shifted.toLowerCase();
+}
+
+// Converter de Hogler símbolos → normal
+function fromHoglerSymbols(symbols,lang){
+  const dict = lang==="pt"?portugueseWords:germanWords;
+  for(const [k,v] of Object.entries(dict)){
+    if(v.symbols===symbols) return k;
   }
   return "(desconhecido)";
 }
 
-// Tradução
-function translateHogler(){
-  const from=document.getElementById('fromLang').value;
-  const to=document.getElementById('toLang').value;
+// Tradução automática
+function autoTranslate(){
   const input=document.getElementById('inputText').value.trim();
+  const to=document.getElementById('toLang').value;
   const tbody=document.querySelector('#outputTable tbody');
   tbody.innerHTML='';
-
   if(!input) return;
 
+  const type=detectType(input);
   const words=input.split(/\s+/);
   words.forEach(word=>{
-    let translated="", pronunciation="";
-    if(from!=="hogler" && to==="hogler"){
-      const result = toHogler(word,from);
-      translated = result.symbols;
-      pronunciation = result.pronunciation;
-    } else if(from==="hogler" && to!=="hogler"){
-      translated = fromHogler(word,to);
-    } else if(from!==to){
-      const temp = toHogler(word,from);
-      translated = fromHogler(temp.symbols,to);
-    } else {
-      translated=word;
-    }
-    const pronText = (to==="hogler" && pronunciation)? ` (${pronunciation})` : "";
-    tbody.innerHTML+=`<tr><td>${word}</td><td>${translated}${pronText}</td></tr>`;
+    let translated="";
+    if(type==="normal" && to==="hogler") translated=toHogler(word,"pt");
+    else if(type==="hoglerLetters" && to!=="hogler") translated=fromHoglerLetters(word,to);
+    else if(type==="hoglerSymbols" && to!=="hogler") translated=fromHoglerSymbols(word,to);
+    else if(type==="hoglerLetters" && to==="hogler") translated=toHogler(fromHoglerLetters(word,"pt"),"pt");
+    else if(type==="hoglerSymbols" && to==="hogler") translated=word;
+    else translated=word;
+    tbody.innerHTML+=`<tr><td>${word}</td><td>${translated}</td></tr>`;
   });
 }
 
-// Inverter idiomas
-function swapLanguages(){
-  const from=document.getElementById('fromLang');
-  const to=document.getElementById('toLang');
-  const temp=from.value;
-  from.value=to.value;
-  to.value=temp;
-}
-
-// ----------- IA DE VOZ (GOOGLE DEUTSCH) -----------
-let availableVoices = [];
-window.speechSynthesis.onvoiceschanged = () => {
-  availableVoices = window.speechSynthesis.getVoices();
-};
-
-// Ouvir
+// Voz IA (Google Alemão)
+let availableVoices=[];
+window.speechSynthesis.onvoiceschanged=()=>{availableVoices=window.speechSynthesis.getVoices();};
 function listenHogler(){
-  const tbody=document.querySelector('#outputTable tbody');
-  if(!tbody.innerText.trim()) return;
-
-  const text=Array.from(tbody.querySelectorAll('td:nth-child(2)'))
-    .map(td=>td.innerText)
-    .join(' ');
-
-  const utterance=new SpeechSynthesisUtterance(text);
-
-  let germanVoice = availableVoices.find(v =>
-    v.name.toLowerCase().includes("google deutsch") || v.lang === "de-DE"
-  );
-  if (!germanVoice && availableVoices.length > 0) germanVoice = availableVoices[0];
-
-  utterance.voice = germanVoice;
-  utterance.lang = "de-DE";
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.volume = 1;
-
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  const text=[...document.querySelectorAll('#outputTable tbody td:nth-child(2)')].map(td=>td.textContent).join(' ');
+  if(!text) return;
+  const utter=new SpeechSynthesisUtterance(text);
+  let voice=availableVoices.find(v=>v.name.toLowerCase().includes("google deutsch")||v.lang==="de-DE");
+  if(!voice) voice=availableVoices[0];
+  utter.voice=voice; utter.lang="de-DE"; utter.rate=1; utter.pitch=1;
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(utter);
 }
-// ---------------------------------------------------
 
-// Dicionário
+// Atualizar dicionário
 function updateDictionary(){
-  const dictList=document.getElementById('dictList');
-  dictList.innerHTML='';
+  const dict=document.getElementById('dictList');
+  dict.innerHTML='';
   const combined={...portugueseWords,...germanWords};
   for(const [k,v] of Object.entries(combined)){
-    dictList.innerHTML+=`<li><strong>${k}</strong> → Símbolos: ${v.symbols}, Pronúncia: ${v.pronunciation}</li>`;
+    dict.innerHTML+=`<li><strong>${k}</strong> → ${v.symbols} (${v.pronunciation})</li>`;
   }
 }
 updateDictionary();
